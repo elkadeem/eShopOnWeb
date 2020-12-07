@@ -22,7 +22,10 @@ namespace Microsoft.eShopWeb.Infrastructure.ApplicationInsights
 
         public void Initialize(ITelemetry telemetry)
         {
-            telemetry.Context.Cloud.RoleName = RoleName;
+            if (string.IsNullOrEmpty(telemetry.Context.Cloud.RoleName))
+            {
+                telemetry.Context.Cloud.RoleName = RoleName;                
+            }
         }
     }
 }
