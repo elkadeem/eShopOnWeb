@@ -1,7 +1,7 @@
 ﻿using BlazorApplicationInsights;
 using BlazorShared;
-using Microsoft.JSInterop;
 using System;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -12,18 +12,22 @@ namespace BlazorAdmin.Services
     public class HttpService
     {
         private readonly HttpClient _httpClient;
-        private readonly IApplicationInsights _applicationInsights;
-        private readonly IJSRuntime _js;
+        private readonly IApplicationInsights _applicationInsights;        
         private readonly string _apiUrl;
 
 
-        public HttpService(HttpClient httpClient, BaseUrlConfiguration baseUrlConfiguration, IApplicationInsights applicationInsights
-            , IJSRuntime js)
+        public HttpService(HttpClient httpClient, BaseUrlConfiguration baseUrlConfiguration
+            , IApplicationInsights applicationInsights)
         {
             _httpClient = httpClient;
-            _applicationInsights = applicationInsights ?? throw new ArgumentNullException(nameof(applicationInsights));
-            _js = js;
+            _applicationInsights = applicationInsights 
+                ?? throw new ArgumentNullException(nameof(applicationInsights));
             _apiUrl = baseUrlConfiguration.ApiBase;
+
+            //Activity activity = new Activity("CallAPI");
+            //activity.Start();
+            //_httpClient.DefaultRequestHeaders.TryAddWithoutValidation("traceparent", activity.Id);
+            //_httpClient.DefaultRequestHeaders.TryAddWithoutValidation("tracestate", activity.TraceStateString);
         }
 
         public async Task<T> HttpGet<T>(string uri)
@@ -31,33 +35,35 @@ namespace BlazorAdmin.Services
         {
             var timer = System.Diagnostics.Stopwatch.StartNew();
             HttpResponseMessage result = null;
+            string requestUrl = $"{_apiUrl}{uri}";
             try
-            {
-                result = await _httpClient.GetAsync($"{_apiUrl}{uri}");
+            {           
+                
+                result = await _httpClient.GetAsync(requestUrl);
                 if (!result.IsSuccessStatusCode)
                 {
                     return null;
                 }
-
-                timer.Stop();
-                await TrackDependancy(result, uri, "Get", timer.Elapsed);
+                
                 return await FromHttpResponseMessage<T>(result);
             }
             finally
             {
-
+                timer.Stop();
+                await TrackDependancy(result, requestUrl, "Get", timer.Elapsed);
             }
         }
 
         private Task TrackDependancy(HttpResponseMessage result, string uri, string method, TimeSpan duration)
         {
-            return _applicationInsights.TrackDependencyData(Guid.NewGuid().ToString()
-                , Convert.ToDouble(result.StatusCode)
-                , absoluteUrl: _apiUrl
-                , success: true
-                , commandName: uri
-                , duration: duration.TotalSeconds
-                , method: method);
+            return Task.CompletedTask;
+            //return _applicationInsights.TrackDependencyData(Guid.NewGuid().ToString()
+            //    , Convert.ToDouble(result.StatusCode)
+            //    , absoluteUrl: uri
+            //    , success: true
+            //    , commandName: method
+            //    , duration: duration.TotalSeconds
+            //    , method: method);
         }
 
         public async Task<T> HttpDelete<T>(string uri, int id)
@@ -65,9 +71,10 @@ namespace BlazorAdmin.Services
         {
             var timer = System.Diagnostics.Stopwatch.StartNew();
             HttpResponseMessage result = null;
+            string requestUrl = $"{_apiUrl}{uri}/{id}";
             try
             {
-                result = await _httpClient.DeleteAsync($"{_apiUrl}{uri}/{id}");
+                result = await _httpClient.DeleteAsync(requestUrl);
                 if (!result.IsSuccessStatusCode)
                 {
                     return null;
@@ -78,7 +85,7 @@ namespace BlazorAdmin.Services
             finally
             {
                 timer.Stop();
-                await TrackDependancy(result, uri, "Delete", timer.Elapsed);
+                await TrackDependancy(result, requestUrl, "Delete", timer.Elapsed);
             }
         }
 
@@ -88,9 +95,10 @@ namespace BlazorAdmin.Services
             var content = ToJson(dataToSend);
             var timer = System.Diagnostics.Stopwatch.StartNew();
             HttpResponseMessage result = null;
+            string requestUri = $"{_apiUrl}{uri}";
             try
             {
-                result = await _httpClient.PostAsync($"{_apiUrl}{uri}", content);
+                result = await _httpClient.PostAsync(requestUri, content);
                 if (!result.IsSuccessStatusCode)
                 {
                     return null;
@@ -101,7 +109,7 @@ namespace BlazorAdmin.Services
             finally
             {
                 timer.Stop();
-                await TrackDependancy(result, uri, "Post", timer.Elapsed);
+                await TrackDependancy(result, requestUri, "Post", timer.Elapsed);
             }
         }
 
@@ -111,9 +119,10 @@ namespace BlazorAdmin.Services
             var content = ToJson(dataToSend);
             var timer = System.Diagnostics.Stopwatch.StartNew();
             HttpResponseMessage result = null;
+            string requestUri = $"{_apiUrl}{uri}";
             try
             {
-                result = await _httpClient.PutAsync($"{_apiUrl}{uri}", content);
+                result = await _httpClient.PutAsync(requestUri, content);
                 if (!result.IsSuccessStatusCode)
                 {
                     return null;
@@ -124,7 +133,7 @@ namespace BlazorAdmin.Services
             finally
             {
                 timer.Stop();
-                await TrackDependancy(result, uri, "Put", timer.Elapsed);
+                await TrackDependancy(result, requestUri, "Put", timer.Elapsed);
             }
         }
 

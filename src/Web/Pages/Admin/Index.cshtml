@@ -36,13 +36,19 @@
             // onInit: null, // Once the application insights instance has loaded and initialized this callback function will be called with 1 argument -- the sdk instance (DO NOT ADD anything to the sdk.queue -- As they won't get called)
             onInit: function (sdk) {
                 sdk.addTelemetryInitializer(function (envelope) {
-                    if (envelope.baseType == "RemoteDependencyData") {                        
-                        envelope.baseData.name = "Public Web API";
+                    if (envelope.baseType == "RemoteDependencyData" && !envelope.baseData.name) {                        
+                        envelope.baseData.name = envelope.baseData.absoluteUrl;
                     }
                 });
             },
             cfg: { // Application Insights Configuration
-                connectionString: "InstrumentationKey=52fe3cb9-57a5-40af-bba9-939b53489856;IngestionEndpoint=https://westeurope-1.in.applicationinsights.azure.com/"
+                connectionString: "InstrumentationKey=52fe3cb9-57a5-40af-bba9-939b53489856;IngestionEndpoint=https://westeurope-1.in.applicationinsights.azure.com/",
+                disableFetchTracking: false,
+                enableCorsCorrelation: true,
+                enableRequestHeaderTracking: true,
+                enableResponseHeaderTracking: true,
+                correlationHeaderDomains: ['localhost'],
+                enableAutoRouteTracking: true
             }
         });
     </script>
