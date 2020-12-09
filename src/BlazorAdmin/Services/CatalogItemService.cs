@@ -26,7 +26,7 @@ namespace BlazorAdmin.Services
             _brandService = brandService;
             _typeService = typeService;
 
-            _httpService = httpService;
+            _httpService = httpService;            
             _logger = logger;
             _apiUrl = baseUrlConfiguration.ApiBase;
         }
