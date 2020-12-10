@@ -38,6 +38,9 @@
         @await Component.InvokeAsync("Basket", User.Identity.Name)
     </section>
 
+    <script>
+        appInsights.setAuthenticatedUserContext("@User.Identity.Name.Replace("\\", "\\\\")".replace(/[,;=| ]+/g, "_"));
+    </script>
 }
 else
 {

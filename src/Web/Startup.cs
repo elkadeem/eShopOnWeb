@@ -3,6 +3,7 @@ using BlazorAdmin;
 using BlazorAdmin.Services;
 using Blazored.LocalStorage;
 using BlazorShared;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
+using Microsoft.eShopWeb.Infrastructure.ApplicationInsights;
 using Microsoft.eShopWeb.Infrastructure.Data;
 using Microsoft.eShopWeb.Infrastructure.Identity;
 using Microsoft.eShopWeb.Web.Configuration;
@@ -162,6 +164,12 @@ namespace Microsoft.eShopWeb.Web
             services.AddBlazorServices();
 
             _services = services; // used to debug registered services
+
+            //Application Insights
+            services.AddSingleton<ITelemetryInitializer, RoleNameTelemetryIntializar>(services => new RoleNameTelemetryIntializar("Web Application"));
+                
+               
+            services.AddApplicationInsightsTelemetry(Configuration["APPINSIGHTS_CONNECTIONSTRING"]);
         }
 
 

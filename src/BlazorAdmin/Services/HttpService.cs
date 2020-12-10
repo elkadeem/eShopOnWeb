@@ -1,4 +1,7 @@
-﻿using BlazorShared;
+﻿using BlazorApplicationInsights;
+using BlazorShared;
+using System;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -9,65 +12,129 @@ namespace BlazorAdmin.Services
     public class HttpService
     {
         private readonly HttpClient _httpClient;
+        private readonly IApplicationInsights _applicationInsights;        
         private readonly string _apiUrl;
 
 
-        public HttpService(HttpClient httpClient, BaseUrlConfiguration baseUrlConfiguration)
+        public HttpService(HttpClient httpClient, BaseUrlConfiguration baseUrlConfiguration
+            , IApplicationInsights applicationInsights)
         {
             _httpClient = httpClient;
+            _applicationInsights = applicationInsights 
+                ?? throw new ArgumentNullException(nameof(applicationInsights));
             _apiUrl = baseUrlConfiguration.ApiBase;
+
+            //Activity activity = new Activity("CallAPI");
+            //activity.Start();
+            //_httpClient.DefaultRequestHeaders.TryAddWithoutValidation("traceparent", activity.Id);
+            //_httpClient.DefaultRequestHeaders.TryAddWithoutValidation("tracestate", activity.TraceStateString);
         }
 
         public async Task<T> HttpGet<T>(string uri)
             where T : class
         {
-            var result = await _httpClient.GetAsync($"{_apiUrl}{uri}");
-            if (!result.IsSuccessStatusCode)
-            {
-                return null;
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            HttpResponseMessage result = null;
+            string requestUrl = $"{_apiUrl}{uri}";
+            try
+            {           
+                
+                result = await _httpClient.GetAsync(requestUrl);
+                if (!result.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+                
+                return await FromHttpResponseMessage<T>(result);
             }
+            finally
+            {
+                timer.Stop();
+                await TrackDependancy(result, requestUrl, "Get", timer.Elapsed);
+            }
+        }
 
-            return await FromHttpResponseMessage<T>(result);
+        private Task TrackDependancy(HttpResponseMessage result, string uri, string method, TimeSpan duration)
+        {
+            return Task.CompletedTask;
+            //return _applicationInsights.TrackDependencyData(Guid.NewGuid().ToString()
+            //    , Convert.ToDouble(result.StatusCode)
+            //    , absoluteUrl: uri
+            //    , success: true
+            //    , commandName: method
+            //    , duration: duration.TotalSeconds
+            //    , method: method);
         }
 
         public async Task<T> HttpDelete<T>(string uri, int id)
             where T : class
         {
-            var result = await _httpClient.DeleteAsync($"{_apiUrl}{uri}/{id}");
-            if (!result.IsSuccessStatusCode)
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            HttpResponseMessage result = null;
+            string requestUrl = $"{_apiUrl}{uri}/{id}";
+            try
             {
-                return null;
-            }
+                result = await _httpClient.DeleteAsync(requestUrl);
+                if (!result.IsSuccessStatusCode)
+                {
+                    return null;
+                }
 
-            return await FromHttpResponseMessage<T>(result);
+                return await FromHttpResponseMessage<T>(result);
+            }
+            finally
+            {
+                timer.Stop();
+                await TrackDependancy(result, requestUrl, "Delete", timer.Elapsed);
+            }
         }
 
         public async Task<T> HttpPost<T>(string uri, object dataToSend)
             where T : class
         {
             var content = ToJson(dataToSend);
-
-            var result = await _httpClient.PostAsync($"{_apiUrl}{uri}", content);
-            if (!result.IsSuccessStatusCode)
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            HttpResponseMessage result = null;
+            string requestUri = $"{_apiUrl}{uri}";
+            try
             {
-                return null;
-            }
+                result = await _httpClient.PostAsync(requestUri, content);
+                if (!result.IsSuccessStatusCode)
+                {
+                    return null;
+                }
 
-            return await FromHttpResponseMessage<T>(result);
+                return await FromHttpResponseMessage<T>(result);
+            }
+            finally
+            {
+                timer.Stop();
+                await TrackDependancy(result, requestUri, "Post", timer.Elapsed);
+            }
         }
 
         public async Task<T> HttpPut<T>(string uri, object dataToSend)
             where T : class
         {
             var content = ToJson(dataToSend);
-
-            var result = await _httpClient.PutAsync($"{_apiUrl}{uri}", content);
-            if (!result.IsSuccessStatusCode)
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            HttpResponseMessage result = null;
+            string requestUri = $"{_apiUrl}{uri}";
+            try
             {
-                return null;
-            }
+                result = await _httpClient.PutAsync(requestUri, content);
+                if (!result.IsSuccessStatusCode)
+                {
+                    return null;
+                }
 
-            return await FromHttpResponseMessage<T>(result);
+                return await FromHttpResponseMessage<T>(result);
+            }
+            finally
+            {
+                timer.Stop();
+                await TrackDependancy(result, requestUri, "Put", timer.Elapsed);
+            }
         }
 
 
